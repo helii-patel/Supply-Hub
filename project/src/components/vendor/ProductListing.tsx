@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { Search, Filter, Star, Plus, Minus, ShoppingCart } from 'lucide-react';
+import { useCart } from '../../contexts/CartContext';
+import Cart from './Cart';
 
 export default function ProductListing() {
-  const [cart, setCart] = useState<{[key: string]: number}>({});
+  const { state, addItem, updateQuantity, getItemQuantity } = useCart();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   const categories = [
     { id: 'all', name: 'All Products' },
@@ -29,15 +32,26 @@ export default function ProductListing() {
     return matchesSearch && matchesCategory;
   });
 
-  const updateCart = (productId: string, change: number) => {
-    setCart(prev => ({
-      ...prev,
-      [productId]: Math.max(0, (prev[productId] || 0) + change)
-    }));
+  const handleAddToCart = (product: any) => {
+    console.log('Adding product to cart:', product);
+    addItem({
+      productId: product.id,
+      productName: product.name,
+      price: product.price,
+      unit: product.unit,
+      supplier: product.supplier,
+      supplierId: product.id, // You might want to have a separate supplier ID
+      image: product.image,
+    });
+    console.log('Cart state after adding:', state);
   };
 
-  const getTotalItems = () => {
-    return Object.values(cart).reduce((sum, quantity) => sum + quantity, 0);
+  const handleUpdateQuantity = (productId: string, change: number) => {
+    console.log('Updating quantity for product:', productId, 'change:', change);
+    const currentQuantity = getItemQuantity(productId);
+    const newQuantity = Math.max(0, currentQuantity + change);
+    console.log('Current quantity:', currentQuantity, 'New quantity:', newQuantity);
+    updateQuantity(productId, newQuantity);
   };
 
   return (
@@ -45,12 +59,40 @@ export default function ProductListing() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold text-gray-900">Browse Products</h2>
-        {getTotalItems() > 0 && (
-          <div className="flex items-center space-x-2 bg-green-100 text-green-800 px-4 py-2 rounded-lg">
+        {state.totalItems > 0 && (
+          <button
+            onClick={() => {
+              console.log('Opening cart with items:', state.items);
+              setIsCartOpen(true);
+            }}
+            className="flex items-center space-x-2 bg-green-100 text-green-800 px-4 py-2 rounded-lg hover:bg-green-200 transition-colors cursor-pointer"
+          >
             <ShoppingCart className="w-5 h-5" />
-            <span className="font-medium">{getTotalItems()} items in cart</span>
-          </div>
+            <span className="font-medium">{state.totalItems} items in cart</span>
+          </button>
         )}
+        {/* Debug info - remove this in production */}
+        <div className="text-xs text-gray-500 bg-yellow-50 px-2 py-1 rounded">
+          Debug: {state.totalItems} items, ₹{state.totalAmount}
+        </div>
+        
+        {/* Test cart button - remove this in production */}
+        <button
+          onClick={() => {
+            console.log('Test: Adding test item to cart');
+            addItem({
+              productId: 'test-1',
+              productName: 'Test Product',
+              price: 10,
+              unit: 'kg',
+              supplier: 'Test Supplier',
+              supplierId: 'test-supplier-1',
+            });
+          }}
+          className="bg-blue-500 text-white px-3 py-1 rounded text-xs"
+        >
+          Test Add Item
+        </button>
       </div>
 
       {/* Search and Filters */}
@@ -118,26 +160,34 @@ export default function ProductListing() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <button
-                    onClick={() => updateCart(product.id, -1)}
-                    disabled={!cart[product.id]}
+                    onClick={() => handleUpdateQuantity(product.id, -1)}
+                    disabled={getItemQuantity(product.id) === 0}
                     className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Minus className="w-4 h-4" />
                   </button>
-                  <span className="w-12 text-center font-medium">{cart[product.id] || 0}</span>
+                  <span className="w-12 text-center font-medium">{getItemQuantity(product.id)}</span>
                   <button
-                    onClick={() => updateCart(product.id, 1)}
+                    onClick={() => handleUpdateQuantity(product.id, 1)}
                     className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
                 
-                {cart[product.id] > 0 && (
+                {getItemQuantity(product.id) > 0 ? (
                   <div className="text-right">
                     <div className="text-sm text-gray-600">Total</div>
-                    <div className="font-bold text-green-600">₹{(cart[product.id] * product.price).toLocaleString()}</div>
+                    <div className="font-bold text-green-600">₹{(getItemQuantity(product.id) * product.price).toLocaleString()}</div>
                   </div>
+                ) : (
+                  <button
+                    onClick={() => handleAddToCart(product)}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Add to Cart</span>
+                  </button>
                 )}
               </div>
             </div>
@@ -146,14 +196,23 @@ export default function ProductListing() {
       </div>
 
       {/* Checkout Button */}
-      {getTotalItems() > 0 && (
+      {state.totalItems > 0 && (
         <div className="fixed bottom-6 right-6 z-50">
-          <button className="bg-green-600 text-white px-6 py-3 rounded-full shadow-lg hover:bg-green-700 transition-colors flex items-center space-x-2">
+          <button 
+            onClick={() => {
+              console.log('Checkout clicked with items:', state.items);
+              setIsCartOpen(true);
+            }}
+            className="bg-green-600 text-white px-6 py-3 rounded-full shadow-lg hover:bg-green-700 transition-colors flex items-center space-x-2 animate-pulse"
+          >
             <ShoppingCart className="w-5 h-5" />
-            <span>Checkout ({getTotalItems()} items)</span>
+            <span>Checkout ({state.totalItems} items)</span>
           </button>
         </div>
       )}
+
+      {/* Cart Modal */}
+      <Cart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </div>
   );
 }

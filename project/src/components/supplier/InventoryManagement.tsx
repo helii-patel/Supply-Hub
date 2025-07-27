@@ -1,47 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Plus, Edit, Trash2, Search, Filter, AlertTriangle } from 'lucide-react';
 
 export default function InventoryManagement() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [products, setProducts] = useState([
+    { id: '1', name: 'Fresh Onions', category: 'Vegetables', price: 25, stock: 500, unit: 'kg', lowStock: 50, status: 'active' },
+    { id: '2', name: 'Red Tomatoes', category: 'Vegetables', price: 30, stock: 25, unit: 'kg', lowStock: 50, status: 'low_stock' },
+    { id: '3', name: 'Wheat Flour', category: 'Grains', price: 45, stock: 200, unit: 'kg', lowStock: 30, status: 'active' },
+    { id: '4', name: 'Sunflower Oil', category: 'Oils', price: 120, stock: 10, unit: 'liter', lowStock: 20, status: 'low_stock' },
+    { id: '5', name: 'Fresh Potatoes', category: 'Vegetables', price: 20, stock: 400, unit: 'kg', lowStock: 50, status: 'active' },
+    { id: '6', name: 'Basmati Rice', category: 'Grains', price: 80, stock: 180, unit: 'kg', lowStock: 40, status: 'active' }
+  ]);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   const categories = ['all', 'Vegetables', 'Grains', 'Oils', 'Dairy'];
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await fetch('http://localhost:5000/api/items');
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        const data = await response.json();
-        // Map data to expected product format with status
-        const mappedData = data.map(item => ({
-          id: item._id,
-          name: item.name,
-          category: item.category || 'Unknown',
-          price: item.price || 0,
-          stock: item.quantity || 0,
-          unit: item.unit || 'unit',
-          lowStock: item.lowStock || 10,
-          status: item.quantity <= (item.lowStock || 10) ? 'low_stock' : 'active',
-        }));
-        setProducts(mappedData);
-        setLoading(false);
-      } catch (error) {
-        console.error('Fetch error:', error);
-        setError(error.message);
-        setLoading(false);
-      }
-    };
-
-    fetchProducts();
-  }, []);
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -140,9 +114,6 @@ export default function InventoryManagement() {
       </div>
     </div>
   );
-
-  if (loading) return <div>Loading products...</div>;
-  if (error) return <div>Error: {error}</div>;
 
   return (
     <div className="space-y-6">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '../shared/Layout';
 import VendorSidebar from './VendorSidebar';
 import ProductListing from './ProductListing';
@@ -6,21 +6,150 @@ import OrderTracking from './OrderTracking';
 import PriceTrends from './PriceTrends';
 import { ShoppingCart, TrendingUp, Package, Star } from 'lucide-react';
 
+interface StoredOrder {
+  id: string;
+  orderNumber: string;
+  items: Array<{
+    productName: string;
+    quantity: number;
+    unit: string;
+    price: number;
+  }>;
+  total: number;
+  status: string;
+  createdAt: Date;
+  deliveryAddress?: string;
+}
+
 export default function VendorDashboard() {
   const [activeView, setActiveView] = useState('dashboard');
-
-  const stats = [
+  const [recentOrders, setRecentOrders] = useState([
+    { id: 'ORD001', supplier: 'Green Valley Farms', items: 'Onions, Tomatoes', status: 'Delivered', date: '2025-01-10', amount: '₹1,200' },
+    { id: 'ORD002', supplier: 'Fresh Harvest Co.', items: 'Potatoes, Carrots', status: 'In Transit', date: '2025-01-12', amount: '₹800' },
+    { id: 'ORD003', supplier: 'Organic Fields', items: 'Flour, Oil', status: 'Processing', date: '2025-01-13', amount: '₹2,100' }
+  ]);
+  const [stats, setStats] = useState([
     { label: 'Active Orders', value: '12', icon: Package, color: 'text-blue-600', bg: 'bg-blue-100' },
     { label: 'Total Spent', value: '₹45,600', icon: ShoppingCart, color: 'text-green-600', bg: 'bg-green-100' },
     { label: 'Avg Rating', value: '4.8', icon: Star, color: 'text-yellow-600', bg: 'bg-yellow-100' },
     { label: 'Savings', value: '₹8,200', icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-100' }
-  ];
+  ]);
 
-  const recentOrders = [
-    { id: 'ORD001', supplier: 'Green Valley Farms', items: 'Onions, Tomatoes', status: 'Delivered', date: '2025-01-10', amount: '₹1,200' },
-    { id: 'ORD002', supplier: 'Fresh Harvest Co.', items: 'Potatoes, Carrots', status: 'In Transit', date: '2025-01-12', amount: '₹800' },
-    { id: 'ORD003', supplier: 'Organic Fields', items: 'Flour, Oil', status: 'Processing', date: '2025-01-13', amount: '₹2,100' }
-  ];
+  // Calculate actual stats from orders
+  const calculateStats = (orders: StoredOrder[]) => {
+    // Combine stored orders with some default historical data for realistic totals
+    const defaultHistoricalSpending = 42500; // Previous orders total
+    const defaultHistoricalSavings = 7800;   // Previous savings
+    
+    const activeOrders = orders.filter(order => 
+      order.status === 'pending' || order.status === 'processing' || order.status === 'in_transit'
+    ).length;
+    
+    const totalFromNewOrders = orders.reduce((sum, order) => sum + order.total, 0);
+    const totalSpent = defaultHistoricalSpending + totalFromNewOrders;
+    
+    // Calculate average rating (simulated based on order completion)
+    const deliveredOrders = orders.filter(order => order.status === 'delivered').length;
+    const totalOrders = orders.length + 8; // Add some historical orders
+    const avgRating = totalOrders > 0 ? (4.6 + (deliveredOrders * 0.2)).toFixed(1) : '4.8';
+    
+    // Calculate savings (roughly 15% of total spent as market comparison savings)
+    const newSavings = Math.round(totalFromNewOrders * 0.15);
+    const totalSavings = defaultHistoricalSavings + newSavings;
+
+    return [
+      { 
+        label: 'Active Orders', 
+        value: (activeOrders + 8).toString(), // Add some base active orders
+        icon: Package, 
+        color: 'text-blue-600', 
+        bg: 'bg-blue-100' 
+      },
+      { 
+        label: 'Total Spent', 
+        value: `₹${totalSpent.toLocaleString()}`, 
+        icon: ShoppingCart, 
+        color: 'text-green-600', 
+        bg: 'bg-green-100' 
+      },
+      { 
+        label: 'Avg Rating', 
+        value: avgRating, 
+        icon: Star, 
+        color: 'text-yellow-600', 
+        bg: 'bg-yellow-100' 
+      },
+      { 
+        label: 'Savings', 
+        value: `₹${totalSavings.toLocaleString()}`, 
+        icon: TrendingUp, 
+        color: 'text-purple-600', 
+        bg: 'bg-purple-100' 
+      }
+    ];
+  };
+
+  // Load and listen for new orders
+  useEffect(() => {
+    const loadRecentOrders = () => {
+      try {
+        const storedOrders: StoredOrder[] = JSON.parse(localStorage.getItem('vendorOrders') || '[]');
+        
+        // Update stats based on actual orders
+        const newStats = calculateStats(storedOrders);
+        setStats(newStats);
+        
+        // Convert stored orders to the format expected by the dashboard
+        const formattedStoredOrders = storedOrders.slice(0, 3).map(order => ({
+          id: order.orderNumber,
+          supplier: 'Your Order', // Since these are user's own orders
+          items: order.items.map(item => item.productName).join(', '),
+          status: order.status === 'pending' ? 'Processing' : 
+                 order.status === 'delivered' ? 'Delivered' : 
+                 order.status === 'in_transit' ? 'In Transit' : 'Processing',
+          date: new Date(order.createdAt).toLocaleDateString(),
+          amount: `₹${order.total.toLocaleString()}`
+        }));
+
+        // Combine with default orders, showing stored orders first
+        const defaultOrders = [
+          { id: 'ORD001', supplier: 'Green Valley Farms', items: 'Onions, Tomatoes', status: 'Delivered', date: '2025-01-10', amount: '₹1,200' },
+          { id: 'ORD002', supplier: 'Fresh Harvest Co.', items: 'Potatoes, Carrots', status: 'In Transit', date: '2025-01-12', amount: '₹800' },
+          { id: 'ORD003', supplier: 'Organic Fields', items: 'Flour, Oil', status: 'Processing', date: '2025-01-13', amount: '₹2,100' }
+        ];
+
+        const allOrders = [...formattedStoredOrders, ...defaultOrders].slice(0, 3);
+        setRecentOrders(allOrders);
+        
+        console.log('Dashboard updated - Orders:', allOrders.length, 'Stats:', newStats);
+      } catch (error) {
+        console.error('Error loading recent orders:', error);
+      }
+    };
+
+    // Load initially
+    loadRecentOrders();
+
+    // Listen for new orders
+    const handleOrderCreated = () => {
+      console.log('Dashboard detected new order, refreshing...');
+      setTimeout(loadRecentOrders, 100); // Small delay to ensure localStorage is updated
+    };
+
+    window.addEventListener('orderCreated', handleOrderCreated);
+    
+    // Also listen for storage changes (in case user has multiple tabs)
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'vendorOrders') {
+        loadRecentOrders();
+      }
+    });
+
+    return () => {
+      window.removeEventListener('orderCreated', handleOrderCreated);
+      window.removeEventListener('storage', loadRecentOrders);
+    };
+  }, []);
 
   const renderContent = () => {
     switch (activeView) {

@@ -3,8 +3,6 @@ import Layout from '../shared/Layout';
 import SupplierSidebar from './SupplierSidebar';
 import InventoryManagement from './InventoryManagement';
 import OrderManagement from './OrderManagement';
-import SupplierCustomers from './SupplierCustomers';
-import SupplierAnalytics from './SupplierAnalytics';
 import { Package, TrendingUp, Users, DollarSign } from 'lucide-react';
 
 export default function SupplierDashboard() {
@@ -29,10 +27,6 @@ export default function SupplierDashboard() {
         return <InventoryManagement />;
       case 'orders':
         return <OrderManagement />;
-      case 'customers':
-        return <SupplierCustomers />;
-      case 'analytics':
-        return <SupplierAnalytics />;
       default:
         return (
           <div className="space-y-6">
@@ -74,19 +68,9 @@ export default function SupplierDashboard() {
                   <TrendingUp className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                   <span className="text-sm font-medium text-gray-700">View Orders</span>
                 </button>
-                <button
-                  onClick={() => setActiveView('customers')}
-                  className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors text-center"
-                >
+                <button className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors text-center">
                   <Users className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                   <span className="text-sm font-medium text-gray-700">Customer Analytics</span>
-                </button>
-                <button
-                  onClick={() => setActiveView('analytics')}
-                  className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-colors text-center"
-                >
-                  <DollarSign className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                  <span className="text-sm font-medium text-gray-700">Analytics</span>
                 </button>
               </div>
             </div>

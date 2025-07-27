@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { CartProvider } from './contexts/CartContext';
 import LoginPage from './components/auth/LoginPage';
 import VendorDashboard from './components/vendor/VendorDashboard';
 import SupplierDashboard from './components/supplier/SupplierDashboard';
@@ -30,9 +31,11 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <div className="min-h-screen bg-gray-50">
-        <AppContent />
-      </div>
+      <CartProvider>
+        <div className="min-h-screen bg-gray-50">
+          <AppContent />
+        </div>
+      </CartProvider>
     </AuthProvider>
   );
 }
